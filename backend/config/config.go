@@ -1,3 +1,4 @@
+// backend/config/config.go
 package config
 
 import (
@@ -9,11 +10,12 @@ import (
 )
 
 type Config struct {
-	MongoURI      string
-	RedisAddr     string
-	JWTSecret     string
+	MongoURI       string
+	RedisAddr      string
+	JWTSecret      string
 	AWSCredentials AWSCreds
 	SESConfigs     []SESConfig
+	TrackingDomain string // New field for the tracking domain
 }
 
 type AWSCreds struct {
@@ -50,7 +52,8 @@ func GetConfig() *Config {
 				Region:    getEnv("AWS_REGION", "us-east-1"),
 			},
 
-			SESConfigs: generateSESConfigs(),
+			SESConfigs:     generateSESConfigs(),
+			TrackingDomain: getEnv("TRACKING_DOMAIN", "track.mail3.example.com"), // Load from env or use default
 		}
 	})
 

@@ -1,3 +1,4 @@
+// backend/main.go
 package main
 
 import (
@@ -18,40 +19,52 @@ func main() {
 
 	// Main request router
 	requestHandler := func(ctx *fasthttp.RequestCtx) {
-	switch string(ctx.Path()) {
-	case "/api/signup":
-		api.SignupHandler(ctx)
-	case "/api/login":
-		api.LoginHandler(ctx)
-	case "/api/send-email":
-		api.AuthMiddleware(api.SendEmailHandler)(ctx)
-	case "/api/upload-csv":
-		api.AuthMiddleware(api.UploadCSVHandler)(ctx)
-	case "/api/subdomains":
-		if ctx.IsGet() {
-			api.GetSubdomains(ctx)
-		} else if ctx.IsPost() {
-			api.AddSubdomain(ctx)
-		}
-	case "/metrics":
-		metrics.Handler(ctx)
-	case "/api/redirect":
-		redirect.Handler(ctx)
-	default:
-		path := string(ctx.Path())
-		if strings.HasPrefix(path, "/api/subdomains/") {
-			if ctx.IsPut() {
-				api.UpdateSubdomain(ctx)
-			} else if ctx.IsDelete() {
-				api.DeleteSubdomain(ctx)
+		switch string(ctx.Path()) {
+		case "/api/signup":
+			api.SignupHandler(ctx)
+		case "/api/login":
+			api.LoginHandler(ctx)
+		case "/api/send-email": // For sending a single, ad-hoc email
+			api.AuthMiddleware(api.SendEmailHandler)(ctx)
+		case "/api/upload-csv": // Uploads only recipient emails, returns list_id
+			api.AuthMiddleware(api.UploadCSVHandler)(ctx)
+		case "/api/campaigns": // Creates campaign content (subject/html), returns campaign_id
+			if ctx.IsPost() {
+				api.AuthMiddleware(api.CreateCampaignHandler)(ctx)
 			} else {
 				ctx.Error("Method Not Allowed", fasthttp.StatusMethodNotAllowed)
 			}
-		} else {
-			ctx.Error("Not Found", fasthttp.StatusNotFound)
+		case "/api/send-campaign": // Initiates sending a campaign to a recipient list
+			if ctx.IsPost() {
+				api.AuthMiddleware(api.SendCampaignHandler)(ctx)
+			} else {
+				ctx.Error("Method Not Allowed", fasthttp.StatusMethodNotAllowed)
+			}
+		case "/api/subdomains":
+			if ctx.IsGet() {
+				api.GetSubdomains(ctx)
+			} else if ctx.IsPost() {
+				api.AddSubdomain(ctx)
+			}
+		case "/metrics":
+			metrics.Handler(ctx)
+		case "/api/redirect":
+			redirect.Handler(ctx)
+		default:
+			path := string(ctx.Path())
+			if strings.HasPrefix(path, "/api/subdomains/") {
+				if ctx.IsPut() {
+					api.UpdateSubdomain(ctx)
+				} else if ctx.IsDelete() {
+					api.DeleteSubdomain(ctx)
+				} else {
+					ctx.Error("Method Not Allowed", fasthttp.StatusMethodNotAllowed)
+				}
+			} else {
+				ctx.Error("Not Found", fasthttp.StatusNotFound)
+			}
 		}
 	}
-}
 
 	// CORS Middleware
 	corsHandler := func(ctx *fasthttp.RequestCtx) {

@@ -1,3 +1,4 @@
+// backend/db/mongo.go
 package db
 
 import (
@@ -6,6 +7,7 @@ import (
 	"email-sender/backend/models"
 	"log"
 
+	"go.mongodb.org/mongo-driver/bson" // Import bson for filtering
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -81,4 +83,30 @@ func DeleteIPPair(subdomain, ip string) error {
 		map[string]string{"subdomain": subdomain, "ip": ip},
 	)
 	return err
+}
+
+// --- Functions for Campaign management ---
+
+func CreateCampaign(campaign *models.Campaign) error {
+	_, err := GetCollection("campaigns").InsertOne(context.Background(), campaign)
+	return err
+}
+
+func FindCampaign(id string) (models.Campaign, error) {
+	var campaign models.Campaign
+	err := GetCollection("campaigns").FindOne(context.Background(), bson.M{"_id": id}).Decode(&campaign)
+	return campaign, err
+}
+
+// --- Functions for RecipientList management ---
+
+func CreateRecipientList(list *models.RecipientList) error {
+	_, err := GetCollection("recipient_lists").InsertOne(context.Background(), list)
+	return err
+}
+
+func FindRecipientList(id string) (models.RecipientList, error) {
+	var list models.RecipientList
+	err := GetCollection("recipient_lists").FindOne(context.Background(), bson.M{"_id": id}).Decode(&list)
+	return list, err
 }
